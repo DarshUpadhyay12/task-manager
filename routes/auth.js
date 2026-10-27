@@ -4,6 +4,7 @@ const { UniqueConstraintError } = require("sequelize");
 const sequelize = require("../config/database");
 const Task = require("../models/task");
 const User = require("../models/user");
+const { authenticationLimiter } = require("../config/security");
 
 const router = Router();
 const userFields = ["id", "name", "email", "isAdmin"];
@@ -39,7 +40,7 @@ router.get("/me", async (req, res) => {
     res.json({ user });
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", authenticationLimiter, async (req, res) => {
     const body = req.body;
     if (!body || typeof body !== "object" || Array.isArray(body)) {
         return res.status(400).json({ error: "Provide your name, email, and password." });
@@ -87,7 +88,7 @@ router.post("/register", async (req, res) => {
     }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authenticationLimiter, async (req, res) => {
     const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
     const password = req.body?.password;
 

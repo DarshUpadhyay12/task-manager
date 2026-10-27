@@ -88,12 +88,14 @@ test("forwarded headers preserve cookies and remove untrusted identity and hop-b
         "x-user-email": "spoofed@example.com",
         "x-is-admin": "true",
         "x-forwarded-for": "127.0.0.1",
+        "x-forwarded-proto": "https",
         "content-type": "application/json"
-    }, "POST");
+    }, "POST", "http");
 
     assert.equal(forwarded.cookie, "task_manager.sid=abc");
     assert.equal(forwarded.authorization, "Bearer token");
     assert.equal(forwarded["content-type"], "application/json");
+    assert.equal(forwarded["x-forwarded-proto"], "http");
     for (const name of ["host", "x-user-id", "x-user-email", "x-is-admin", "x-forwarded-for"]) {
         assert.equal(forwarded[name], undefined, `${name} should not be forwarded`);
     }
@@ -113,6 +115,7 @@ test("gateway forwards method, raw body, query, session cookie, status, and mult
         assert.equal(url, "http://auth.test:5001/auth/login?email=test%40example.com&tag=a&tag=b");
         assert.equal(options.method, "PATCH");
         assert.equal(options.headers.cookie, "task_manager.sid=original");
+        assert.equal(options.headers["x-forwarded-proto"], "http");
         assert.equal(options.headers["x-user-id"], undefined);
         assert.equal(options.headers["x-user-email"], undefined);
         assert.equal(options.headers["x-is-admin"], undefined);

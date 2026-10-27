@@ -5,6 +5,13 @@ const Task = require("../../models/task");
 const { literal } = require("sequelize");
 
 function getDbConfig() {
+    if (process.env.DATABASE_URL) {
+        return {
+            connectionString: process.env.DATABASE_URL,
+            ssl: (process.env.DB_SSL === "true" || process.env.NODE_ENV === "production") ? { rejectUnauthorized: false } : false
+        };
+    }
+
     if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
         throw new Error("DB_USER and DB_PASSWORD must be configured.");
     }
@@ -14,7 +21,8 @@ function getDbConfig() {
         port: Number(process.env.DB_PORT || 5433),
         database: process.env.DB_NAME || "api_practice",
         user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD
+        password: process.env.DB_PASSWORD,
+        ...(process.env.DB_SSL === "true" ? { ssl: { rejectUnauthorized: false } } : {})
     };
 }
 

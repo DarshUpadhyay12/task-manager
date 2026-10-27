@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${DB_USER:?Set DB_USER in .env}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,13 +29,12 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      SERVICE_HOST: 0.0.0.0
       AUTH_SERVICE_PORT: 5001
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "5001:5001"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -55,12 +54,11 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      SERVICE_HOST: 0.0.0.0
       TASK_SERVICE_PORT: 5002
     depends_on:
       auth-service:
         condition: service_healthy
-    ports:
-      - "5002:5002"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -80,12 +78,11 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      SERVICE_HOST: 0.0.0.0
       ADMIN_SERVICE_PORT: 5003
     depends_on:
       auth-service:
         condition: service_healthy
-    ports:
-      - "5003:5003"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5003/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -98,6 +95,8 @@ services:
     restart: unless-stopped
     command: ["npm", "run", "start:gateway"]
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
       GATEWAY_PORT: 5005
       GATEWAY_REQUEST_TIMEOUT_MS: ${GATEWAY_REQUEST_TIMEOUT_MS:-10000}
       AUTH_SERVICE_URL: http://auth-service:5001

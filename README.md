@@ -10,9 +10,9 @@ microfrontends.
 | Component | Port | Responsibility |
 | --- | ---: | --- |
 | Monolith (`npm start`) | 5000 | Existing all-in-one app and API fallback |
-| Auth Service | 5001 | Registration, login, logout, current user and session creation |
-| Task Service | 5002 | Authenticated task CRUD, with ownership checks |
-| Admin Service | 5003 | Admin-only user and task management API |
+| Auth Service | 5001 (internal) | Registration, login, logout, current user and session creation |
+| Task Service | 5002 (internal) | Authenticated task CRUD, with ownership checks |
+| Admin Service | 5003 (internal) | Admin-only user and task management API |
 | API Gateway | 5005 | Frontend hosting and routing to the backend services |
 | PostgreSQL | host 5433 / container 5432 | Existing application data and PostgreSQL session table |
 
@@ -48,7 +48,8 @@ not implemented.
 Relevant settings are `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`,
 `DB_PORT`, and `SESSION_SECRET`. Set `DB_USER` and `DB_PASSWORD` to match the
 existing PostgreSQL instance/volume. The Compose database listens on host port
-5433; the services use port 5432 inside the Compose network. Service ports and
+5433 on loopback only; containers use port 5432 over the private Compose
+network. Auth, Task and Admin are not published to the host. Service ports and
 their gateway URLs can also be configured with `AUTH_SERVICE_PORT`,
 `TASK_SERVICE_PORT`, `ADMIN_SERVICE_PORT`, `GATEWAY_PORT`,
 `AUTH_SERVICE_URL`, `TASK_SERVICE_URL`, and `ADMIN_SERVICE_URL`. The Compose
@@ -88,7 +89,39 @@ preserving data, run `docker compose down` (do not add `-v`).
 For a host-based service run, start PostgreSQL with `docker compose up -d
 postgres`, then run `npm run start:auth`, `npm run start:tasks`,
 `npm run start:admin`, and `npm run start:gateway` in separate terminals, in
-that order. Auth must finish starting first so it can prepare the schema.
+that order. The services bind to loopback by default and remain accessible
+through the local gateway. Auth must finish starting first so it can prepare
+the schema.
+
+## Production security
+
+Deploy only the API Gateway as the public application; keep the Auth, Task and
+Admin services on a private network. The Compose setup publishes only the
+gateway and binds PostgreSQL's development port to `127.0.0.1`; production
+databases should use the hosting provider's private network and connection
+pooling rather than a public database endpoint.
+
+Set `NODE_ENV=production` in the hosting platform's environment configuration.
+Set `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` and a unique,
+random `SESSION_SECRET` there as well; do not copy the placeholder values from
+`.env.example` into production. Set `ADMIN_EMAIL` only if an existing account
+should be promoted. The application does not configure hosting-provider
+secrets, databases or TLS certificates.
+
+Terminate TLS at the hosting platform and set `TRUST_PROXY_HOPS` to the exact
+number of trusted proxies in front of the gateway (commonly `1`). Production
+gateway and monolith requests without HTTPS return `426`; successful HTTPS
+responses receive HSTS. The gateway forwards its verified protocol to the
+private services so secure session cookies work behind TLS termination. The
+gateway's health endpoint is exempt for private container health checks.
+
+The public Gateway and monolith apply a 600-request per 15-minute IP limit;
+registration and login also have a 10-request per 15-minute limit. These use
+in-memory counters and should be paired with the hosting provider's distributed
+rate limiter when running multiple instances. The app serves its frontend and
+API on the same origin and does not enable cross-origin access. Admin routes
+require an administrator session; unknown gateway routes are rejected. SQL
+query logging is disabled. Local `.env` files are ignored by Git.
 
 ## End-to-end check
 

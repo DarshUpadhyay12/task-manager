@@ -5,10 +5,13 @@ const sequelize = require("../../config/database");
 const { createSessionMiddleware } = require("../shared/session");
 const authRoutes = require("../../routes/auth");
 const migrateSchema = require("../../config/migrate");
+const { configureTrustProxy } = require("../../config/security");
 
 const app = express();
 const PORT = Number(process.env.AUTH_SERVICE_PORT || 5001);
+const HOST = process.env.SERVICE_HOST || "127.0.0.1";
 
+configureTrustProxy(app, 1);
 app.use(express.json());
 app.use(createSessionMiddleware());
 
@@ -36,7 +39,7 @@ async function start() {
         await sequelize.authenticate();
         await sequelize.sync();
         await migrateSchema();
-        app.listen(PORT, () => {
+        app.listen(PORT, HOST, () => {
             console.log(`Auth service running on http://localhost:${PORT}`);
         });
     } catch (error) {

@@ -4,10 +4,13 @@ const express = require("express");
 const sequelize = require("../../config/database");
 const adminRoutes = require("../../routes/admin");
 const { createSessionMiddleware, requireAuthentication, requireAdmin } = require("../shared/session");
+const { configureTrustProxy } = require("../../config/security");
 
 const app = express();
 const PORT = Number(process.env.ADMIN_SERVICE_PORT || 5003);
+const HOST = process.env.SERVICE_HOST || "127.0.0.1";
 
+configureTrustProxy(app, 1);
 app.use(express.json());
 app.use(createSessionMiddleware());
 
@@ -31,7 +34,7 @@ app.use((error, req, res, next) => {
 (async () => {
     try {
         await sequelize.authenticate();
-        app.listen(PORT, () => {
+        app.listen(PORT, HOST, () => {
             console.log(`Admin service running on http://localhost:${PORT}`);
         });
     } catch (error) {

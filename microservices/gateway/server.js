@@ -3,11 +3,16 @@ require("dotenv").config();
 const express = require("express");
 const path = require("node:path");
 const { routeForRequest, buildUpstreamUrl, getSafeForwardHeaders } = require("./router");
+const { publicApiLimiter, configureTrustProxy, requireHttps } = require("../../config/security");
 
 const app = express();
 const PORT = Number(process.env.GATEWAY_PORT || 5005);
 const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
 const ALLOWED_PROXY_PATH_PREFIXES = ["/auth", "/tasks", "/admin"];
+
+configureTrustProxy(app);
+app.use(publicApiLimiter);
+app.use(requireHttps);
 
 function getRequestTimeoutMs() {
     const configuredTimeout = Number(process.env.GATEWAY_REQUEST_TIMEOUT_MS);
@@ -54,7 +59,7 @@ app.use(async (req, res) => {
     }
 
     const upstreamUrl = buildUpstreamUrl(baseUrl, requestPath);
-    const safeHeaders = getSafeForwardHeaders(req.headers, req.method);
+    const safeHeaders = getSafeForwardHeaders(req.headers, req.method, req.protocol);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), getRequestTimeoutMs());

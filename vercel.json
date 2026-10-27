@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "https://YOUR-RENDER-BACKEND-URL.onrender.com/auth/:path*"
+    },
+    {
+      "source": "/tasks/:path*",
+      "destination": "https://YOUR-RENDER-BACKEND-URL.onrender.com/tasks/:path*"
+    },
+    {
+      "source": "/admin/api/:path*",
+      "destination": "https://YOUR-RENDER-BACKEND-URL.onrender.com/admin/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://YOUR-RENDER-BACKEND-URL.onrender.com/api/:path*"
+    },
+    {
+      "source": "/admin",
+      "destination": "/public/admin.html"
+    },
+    {
+      "source": "/",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/public/:path*"
+    }
+  ]
+}

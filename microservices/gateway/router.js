@@ -54,7 +54,7 @@ function buildUpstreamUrl(baseUrl, requestUrl) {
     return target.toString();
 }
 
-function getSafeForwardHeaders(headers = {}, method = "GET") {
+function getSafeForwardHeaders(headers = {}, method = "GET", protocol) {
     const forwardedHeaders = {};
     const allowedHeaders = new Set([
         "accept",
@@ -115,6 +115,10 @@ function getSafeForwardHeaders(headers = {}, method = "GET") {
         }
 
         forwardedHeaders[key] = value;
+    }
+
+    if (protocol === "http" || protocol === "https") {
+        forwardedHeaders["x-forwarded-proto"] = protocol;
     }
 
     return forwardedHeaders;

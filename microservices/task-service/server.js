@@ -3,9 +3,12 @@ require("dotenv").config();
 const express = require("express");
 const { createSessionMiddleware, requireAuthentication } = require("../shared/session");
 const taskRoutes = require("../../routes/tasks");
+const { configureTrustProxy } = require("../../config/security");
 const app = express();
 const PORT = Number(process.env.TASK_SERVICE_PORT || 5002);
+const HOST = process.env.SERVICE_HOST || "127.0.0.1";
 
+configureTrustProxy(app, 1);
 app.use(express.json());
 app.use(createSessionMiddleware());
 
@@ -30,7 +33,7 @@ const sequelize = require("../../config/database");
 (async () => {
     try {
         await sequelize.authenticate();
-        app.listen(PORT, () => {
+        app.listen(PORT, HOST, () => {
             console.log(`Task service running on http://localhost:${PORT}`);
         });
     } catch (error) {
