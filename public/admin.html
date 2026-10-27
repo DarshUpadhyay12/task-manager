@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f6f8">
+    <meta name="api-base" content="">
+    <title>Admin — Task Manager</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/admin.js"></script>
+</head>
+<body>
+    <main class="page-shell admin-shell">
+        <header class="page-header">
+            <div>
+                <p class="admin-kicker">ADMIN</p>
+                <h1>Users and tasks</h1>
+            </div>
+            <a class="button button-quiet" href="/">Back to tasks</a>
+        </header>
+
+        <p id="admin-feedback" class="feedback" role="alert" hidden></p>
+        <p id="admin-summary" class="admin-summary" aria-live="polite"></p>
+        <section id="admin-users" class="admin-users" aria-label="Registered users"></section>
+    </main>
+</body>
+</html>

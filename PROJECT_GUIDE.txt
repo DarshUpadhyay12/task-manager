@@ -1,0 +1,590 @@
+TASK MANAGER PROJECT GUIDE
+=========================
+
+What this project is
+--------------------
+This is a small web-based task manager. People create accounts, log in, and
+manage their own task lists. A task has a title, an optional description, and
+a done/not-done status. An administrator can also view registered users and
+their tasks.
+
+The project has a browser interface and two backend run modes:
+
+1. A browser interface (HTML, CSS, and JavaScript in the public folder).
+2. The original Node.js monolith (server.js, port 5000).
+3. An optional transitional setup with an API Gateway (port 5005) and separate
+   Auth (5001), Task (5002), and Admin (5003) Express services.
+
+Both backend modes use the same PostgreSQL database. The modular frontend
+scripts are not independently deployable microfrontends. The database is a
+separate service and must be reachable using the settings in .env.
+
+
+The whole request cycle, in simple language
+-------------------------------------------
+Example: adding a task
+
+1. You type a title and optional description in the browser and click "Add task".
+2. public/app.js reads the form and sends a JSON request to POST /tasks.
+   The browser automatically includes the session cookie it received after
+   logging in, because this is a same-site request.
+3. Express receives the request. express.json() converts the JSON request body
+   into a JavaScript object. The session middleware reads the cookie and looks
+   up the login session in PostgreSQL.
+4. The authentication middleware checks which user owns that session. If there
+   is no valid login, the server rejects the task request.
+5. The task route checks the submitted fields. It associates the new task with
+   the logged-in user's ID and saves it through Sequelize in PostgreSQL.
+6. The server sends the saved task back as JSON.
+7. The browser updates its task list and displays a success message.
+
+Loading existing tasks follows the same path, but uses GET /tasks. The server
+queries only tasks whose userId is the logged-in user's ID. This is how the
+application keeps one user's tasks separate from another user's tasks.
+
+Editing a task sends only changed values with PATCH /tasks/:id. Marking a task
+done also uses PATCH, sending completed: true or completed: false. Deleting a
+task sends DELETE /tasks/:id. The server checks ownership for each of these
+operations before changing or removing a record.
+
+Logging in follows this cycle:
+
+1. The browser sends the email and password to POST /auth/login.
+2. The server looks up the account by email and compares the entered password
+   with the stored password hash using bcrypt.
+3. If they match, the server creates a new session and saves its ID in
+   PostgreSQL. It sends a session cookie to the browser.
+4. On later requests the browser sends that cookie; the server uses it to
+   identify the logged-in user.
+
+The password itself is not stored in the user table. The password hash is.
+
+
+How to run it on Windows
+------------------------
+Prerequisites:
+- Node.js and npm.
+- Docker Desktop with its Docker engine running, OR a locally installed
+  PostgreSQL server configured to match .env.
+
+This project includes docker-compose.yml for PostgreSQL and the optional
+microservices setup. Open PowerShell in the project folder
+(D:\Task Manager), wait for Docker Desktop to finish starting, then run:
+
+    docker info
+    docker compose up -d postgres
+    docker compose ps
+    npm ci
+    npm start
+
+This starts the original monolith. When PostgreSQL is ready and the server is
+listening, open:
+
+    http://localhost:5000
+
+To start the gateway and all three services instead, set DB_PASSWORD and a
+strong SESSION_SECRET in .env, then run:
+
+    docker compose up -d --build
+    docker compose ps
+
+Open http://localhost:5005. Compose reuses the postgres_data volume. Use
+`docker compose down` to stop while preserving its contents; do not use `-v`.
+
+The first screen lets you log in or create an account. Use "Create an account"
+to register. The site starts each new account logged in.
+
+If docker info says it cannot connect to the Docker API or the Docker Desktop
+pipe is missing, Docker Desktop is not running (or its engine is still
+starting). Start Docker Desktop, wait until it is ready, and retry. If
+"npm start" reports ECONNREFUSED at 127.0.0.1:5433, PostgreSQL is not listening
+at the configured host and port. Fix/start PostgreSQL first; repeatedly
+restarting the Node server cannot fix a database that is unavailable.
+
+Stop the web server with Ctrl+C in the terminal running npm start.
+Stop the PostgreSQL container, while preserving its database files, with:
+
+    docker compose down
+
+The database is stored in the Docker volume named postgres_data. Do not remove
+that volume if you want to keep its data.
+
+
+Features a user can use
+-----------------------
+- Register with name, email, and password.
+- Log in and log out.
+- See the tasks belonging to the logged-in account.
+- Add a task with a title and optional description.
+- Optionally schedule a due date and local time for a task. While signed in
+  with the app open, in-app reminders appear when tasks are due and remain
+  visible while they are unfinished; they clear when the task is done.
+- Edit a task's title, description, or scheduled due date.
+- Mark a task as done or not done using its checkbox.
+- Delete a task after confirming the action.
+- Filter the displayed list to All, To do, or Done.
+- See task counts, empty-state messages, and success/error feedback.
+- Admin users can open a separate screen to view registered users and their
+  tasks.
+
+The All/To do/Done filters are performed in the browser on the tasks already
+loaded for that account. They do not make a separate database request.
+
+
+Server-side functions and what each one does
+---------------------------------------------
+Files: server.js and microservices/shared/task-validation.js
+
+parseTaskId(value)
+    Checks that a URL task ID is a positive whole number and safe for
+    JavaScript to represent. Returns the numeric ID or null if invalid.
+
+validateTaskInput(body, { partial })
+    Checks task request data. Title, description, completed, and dueAt are
+    accepted. The title must be a non-empty string. Description must be a
+    string or null. completed must be true or false. dueAt must be a valid
+    ISO 8601 timestamp or null.
+    For full replacement (PUT), missing optional fields receive defaults.
+    For partial changes (PATCH), only supplied fields are validated and
+    changed. An empty PATCH is rejected.
+
+requireAuthentication(req, res, next)
+    Finds the account named by the session. Rejects requests without a valid
+    login; otherwise places the user on req.user and continues.
+
+requireAdmin(req, res, next)
+    Checks req.user.isAdmin. Returns 403 for a logged-in non-admin.
+
+taskOwnerInclude()
+    Returns Sequelize include settings for attaching safe owner details
+    (ID, name, and email) to a task query.
+
+findOwnedTask(id, userId)
+    Finds a task only if both its ID and owner userId match. It includes the
+    task owner. This supports the per-user access boundary.
+
+startServer()
+    Connects to PostgreSQL, synchronizes Sequelize models, runs the project's
+    schema migration helper, and only then starts Express on port 5000. If
+    connecting or preparing the database fails, it reports the error and
+    exits with a failure status.
+
+Express middleware/setup:
+- express.json() reads JSON request bodies.
+- express-session plus connect-pg-simple stores login sessions in PostgreSQL's
+  user_sessions table. Sessions last seven days. The cookie is HTTP-only and
+  SameSite=Lax. In production it is marked secure (HTTPS-only).
+- Static files in public/ serve the website.
+- /auth routes are provided by routes/auth.js in both run modes.
+- Task handlers are provided by routes/tasks.js in both run modes.
+- Admin handlers are provided by routes/admin.js in both run modes.
+- /admin, /admin/api, and /api/users routes require both a login and admin
+  permission.
+- /tasks routes require a login.
+- The final error handler returns a readable 400 for malformed JSON, logs
+  unexpected server errors, and returns a generic 500 response.
+
+Task API routes in routes/tasks.js:
+
+GET /api/health
+    In the monolith, a simple health response that does not require login.
+
+GET /tasks
+    Returns the logged-in user's tasks, newest first.
+
+GET /tasks/:id
+    Returns one of the logged-in user's tasks. Invalid IDs return 400;
+    missing or someone else's task returns 404.
+
+POST /tasks
+    Creates a task for the logged-in user. The server supplies userId rather
+    than trusting a user ID sent by the browser. Success returns 201.
+
+PUT /tasks/:id
+    Replaces the task fields using full-task validation. The browser interface
+    currently uses PATCH for editing; PUT is available as an API operation.
+
+PATCH /tasks/:id
+    Updates only submitted task fields. Used by the browser for editing and
+    changing completion status.
+
+DELETE /tasks/:id
+    Deletes a task belonging to the logged-in user. Success returns 204 with
+    no response body.
+
+
+Authentication functions and routes
+------------------------------------
+File: routes/auth.js
+
+regenerateSession(req)
+    Wraps the session library's callback API in a Promise and creates a fresh
+    session. This helps avoid reusing an old session ID after login.
+
+saveSession(req)
+    Wraps session saving in a Promise so the route can wait until the session
+    is stored before replying.
+
+GET /auth/me
+    Checks whether the current browser has a valid session and returns the
+    current user's safe public information, or user: null. It lets the browser
+    restore the logged-in screen after a page reload.
+
+POST /auth/register
+    Validates the name, email, and password. Names are trimmed and limited to
+    100 characters; emails are trimmed, lowercased, and checked for a basic
+    email format; passwords must be between 8 and 72 UTF-8 bytes. It hashes
+    the password with bcrypt (12 rounds), creates the user in a database
+    transaction, then starts a login session. Duplicate emails return 409.
+    If this is the first user, existing tasks that have no owner are assigned
+    to that first account. This does not automatically make the account an
+    admin.
+
+POST /auth/login
+    Looks up the normalized email and compares the submitted password to the
+    stored bcrypt hash. Incorrect credentials return 401 without revealing
+    which part was wrong. Successful login creates and saves a new session.
+
+POST /auth/logout
+    Destroys the current session, clears the session cookie, and returns 204.
+
+
+Admin behavior
+--------------
+File: routes/admin.js
+
+The user-management API is mounted at /api/users and requires an authenticated
+administrator. It provides:
+
+GET /api/users
+    Lists users with selected public fields, task counts, and their tasks.
+
+GET /api/users/:id
+    Gets one user and that user's tasks. Invalid IDs return 400; unknown IDs
+    return 404.
+
+POST /api/users
+    Creates a user. Send name, email, and password; isAdmin is optional and
+    defaults to false. Passwords are hashed before storage. Duplicate email
+    returns 409.
+
+PUT /api/users/:id
+    Replaces the public account fields. Send name, email, and isAdmin;
+    password is optional and is only changed if included.
+
+PATCH /api/users/:id
+    Updates only the supplied name, email, password, and/or isAdmin fields.
+    Password changes must be 8 to 72 UTF-8 bytes. Empty updates are rejected.
+
+DELETE /api/users/:id
+    Deletes a user and, because of the User-Task relationship, their tasks.
+    An administrator cannot delete their own account or the last administrator.
+
+Account management responses never return password or passwordHash. Only an
+administrator can set isAdmin through these endpoints. An unauthenticated
+request receives 401; a logged-in non-admin receives 403. These are separate
+from /auth/register, which is the public, self-service account registration
+route.
+
+GET /admin/api/users
+    Requires admin permission (the middleware is attached in server.js or the
+    Admin Service).
+    Returns users with their tasks, task count, and selected account details.
+    It orders users by ID and each user's tasks by creation time. This route
+    remains available for the admin dashboard.
+
+The admin page is public/admin.html, and public/admin.js fetches this endpoint
+and builds a card per user. If the endpoint returns 401 or 403, the browser
+redirects back to the main page. The admin link is shown on the main screen
+only for users whose isAdmin value is true. Hiding the link is only a user
+interface detail; the server also checks admin status.
+
+To promote an existing account, set ADMIN_EMAIL to that account's email in
+.env and restart the server. The migration code looks up that normalized email
+and sets isAdmin to true. It reports an error if no such account exists.
+Remove ADMIN_EMAIL after promoting if you do not want it re-applied at each
+startup.
+
+
+Browser-side functions and what each one does
+----------------------------------------------
+Files: public/app.js and public/js/
+
+apiRequest(path, options)
+    Common fetch helper in public/js/api.js. Sends JSON content type when
+    there is a request body, parses JSON responses, handles 204 responses, and
+    turns server/network failures into readable errors.
+
+Auth and task API operations
+    public/js/auth.js and public/js/tasks.js provide browser-facing operations
+    using the shared API helper. public/js/reminders.js handles due-task
+    selection and persisted five-minute snoozes.
+
+showFeedback(message, type)
+    Shows task success or error feedback. Success messages disappear after
+    about 3.5 seconds.
+
+clearFeedback()
+    Hides and clears the task feedback message and its timer.
+
+getVisibleTasks()
+    Selects all, unfinished, or completed tasks based on the active filter.
+
+createTaskElement(task)
+    Builds one task list row: checkbox, title, optional description, edit
+    button, and delete button. It connects those controls to the appropriate
+    browser functions.
+
+renderTasks()
+    Rebuilds the visible list from browser memory, updates the total task
+    count, and selects the correct empty-list message.
+
+selectFilter(filter)
+    Changes the selected filter and updates the buttons' visual and
+    accessibility state.
+
+setAuthMode(mode)
+    Switches the authentication form between login and account registration,
+    including the name field, prompts, and password autocomplete hint.
+
+showAuthenticatedApp(user)
+    Hides login, displays the account and task screens, shows the admin link
+    when permitted, then loads the user's tasks.
+
+showLoginPanel()
+    Clears task data from the browser and returns the main screen to login.
+
+loadTasks()
+    Requests GET /tasks, stores the result in browser memory, and renders it.
+    Shows an error if loading fails.
+
+resetForm()
+    Clears the add/edit form and restores its "Add a task" state.
+
+beginEdit(task)
+    Fills the form with the selected task, switches to edit mode, and brings
+    the form into view.
+
+updateTask(id, values)
+    Sends a partial change with PATCH /tasks/:id. It updates the local task
+    list and, when completion changes, selects the matching Done or To do
+    filter. On error it reloads tasks to bring the browser back in sync.
+
+deleteTask(task)
+    Asks for confirmation, sends DELETE /tasks/:id, removes the task from the
+    browser list, and shows a success or error message.
+
+initializeApp()
+    Runs on page load. Starts by showing login, calls GET /auth/me, and if a
+    valid session exists it restores the signed-in interface.
+
+The event handlers between these functions connect form submissions,
+checkboxes, filters, edit/delete buttons, login/register, logout, and cancel
+edit actions to the functions above.
+
+File: public/admin.js
+
+addCellText(parent, tag, className, text)
+    Creates an HTML element, assigns its class and textContent, appends it,
+    and returns it. Using textContent treats displayed values as text rather
+    than interpreting them as HTML.
+
+renderUsers(users)
+    Clears and renders admin user cards and their task lists. Shows counts,
+    admin labels, completion state, or empty states.
+
+loadDashboard()
+    Fetches GET /admin/api/users, handles unauthorized/forbidden responses by
+    returning to the main page, and displays an error if loading fails.
+
+
+Data model: what is stored
+--------------------------
+User table (model in models/user.js):
+- id: automatically generated integer primary key.
+- name: account holder's name.
+- email: required, unique, and checked as an email by Sequelize.
+- passwordHash: required hashed password; not the original password.
+- isAdmin: true/false permission flag, false by default.
+- age and city: optional nullable fields retained in the model/database, but
+  not currently collected by the website or used by the task features.
+- createdAt and updatedAt: Sequelize-managed timestamps.
+
+Task table (model in models/task.js):
+- id: automatically generated integer primary key.
+- title: required task title.
+- description: optional longer text.
+- completed: true/false, false by default.
+- userId: ID of the owning user. It is nullable to support unassigned legacy
+  tasks, and references Users.id.
+- createdAt and updatedAt: Sequelize-managed timestamps.
+
+Relationship: one User can have many Tasks. A Task belongs to one User through
+userId. The foreign key is configured to cascade user ID updates and delete
+tasks when their user is deleted.
+
+The browser's All/To do/Done filter does not change stored data. Only task
+creation, editing, completion toggles, and deletion write to PostgreSQL.
+
+
+Project files and their jobs
+----------------------------
+server.js
+    Main Node/Express program: configures middleware, static content, API
+    routes, authentication/authorization checks, and startup.
+
+config/database.js
+    Creates and exports the Sequelize connection to PostgreSQL using DB_NAME,
+    DB_USER, DB_PASSWORD, DB_HOST, and DB_PORT from the environment.
+
+config/migrate.js
+    Adds expected columns/indexes when absent, adjusts legacy age/city columns
+    to allow null values, ensures the unique email index and task owner index,
+    and optionally promotes ADMIN_EMAIL.
+
+models/user.js
+    Defines user/account fields.
+
+models/task.js
+    Defines task fields and the User-Task relationship.
+
+routes/auth.js
+    Account registration, login, current-session lookup, and logout endpoints.
+
+routes/admin.js
+    Admin-only user/task listing API.
+
+public/index.html
+    Main task manager and login/register page structure.
+
+public/app.js
+    Main page behavior, task form/list, filters, and application startup.
+
+public/js/
+    Browser ES modules for API requests, authentication, task API operations,
+    and reminder/snooze state.
+
+microservices/
+    Separate Auth, Task, Admin and Gateway Express processes. Auth initializes
+    the existing schema before the other Compose services start; all services
+    share the PostgreSQL database, session table, and SESSION_SECRET.
+
+public/admin.html
+    Admin dashboard page structure.
+
+public/admin.js
+    Loads and renders the admin dashboard.
+
+public/styles.css
+    Styling for both screens, forms, task rows, buttons, messages, and mobile
+    layout.
+
+docker-compose.yml
+    Runs PostgreSQL 17 and can run all microservices. PostgreSQL maps host
+    port 5433 to container port 5432 and stores data in postgres_data.
+
+.env
+    Local environment settings. This file is ignored by Git. Do not share or
+    commit it because it can contain credentials and a session secret.
+
+.env.example
+    Template showing which local environment variables are expected.
+
+package.json
+    Project metadata, start script, and Node dependencies. "npm start" runs
+    node server.js. "npm test" runs the Node.js built-in test runner.
+
+package-lock.json
+    Records exact dependency versions chosen by npm for repeatable installs.
+
+.gitignore
+    Excludes node_modules/ and .env from Git.
+
+.postman/
+    Contains Postman resource configuration; it is not required to start the
+    web application.
+
+postman/
+    Additional Postman-related assets are present here; they are optional
+    API-development/testing material, not part of normal app startup.
+
+Postman task-ID workflow:
+    The Local environment starts with taskId empty instead of assuming task 1
+    belongs to the signed-in account. Sending GET /tasks saves the ID of that
+    account's newest task into taskId. Sending POST /tasks saves the newly
+    created task's ID. The GET/PATCH/PUT/DELETE requests for one task then use
+    that saved ID. If the account has no tasks, create one first.
+
+
+API request/response rules
+--------------------------
+The browser and server exchange JSON. Main task fields are:
+
+    title       required string for a create or full replacement
+    description string or null
+    completed   boolean
+
+Task IDs in URLs must be positive integers. Typical errors include:
+- 400: invalid task ID, malformed JSON, or invalid task/account input.
+- 401: login required or invalid credentials.
+- 403: signed-in user is not an administrator.
+- 404: task doesn't exist for this user.
+- 409: attempted account registration with an email already in use.
+- 500: unexpected server or database-side error.
+
+The task list route only returns the current user's tasks. Admin routes use a
+different permission check and should only be used by an admin account.
+
+
+Technology overview
+-------------------
+- JavaScript on both server and browser.
+- Node.js runs server.js.
+- Express handles HTTP routing, JSON requests, and static website files.
+- PostgreSQL stores users, tasks, and login sessions.
+- Sequelize maps JavaScript models to PostgreSQL tables and performs queries.
+- bcryptjs hashes and verifies passwords.
+- express-session maintains login sessions.
+- connect-pg-simple stores those sessions in PostgreSQL.
+- dotenv loads local settings from .env.
+- Docker Compose can start the PostgreSQL service locally.
+- The front end is plain HTML, CSS, and browser JavaScript; there is no
+  separate frontend build step or frontend framework.
+
+
+Important limitations and practical notes
+-----------------------------------------
+- The app is configured for local development on http://localhost:5000.
+- PostgreSQL must be running before npm start can complete successfully.
+- The Docker database port is 5433 on the Windows host and 5432 inside Docker.
+- Database settings must agree between .env and docker-compose.yml.
+- The schema migration runs when the server starts. Keep a backup before using
+  this project with important data or changing its schema.
+- Sessions expire after seven days. The session data itself is in PostgreSQL;
+  the browser only keeps the session cookie.
+- In production, configure a strong SESSION_SECRET and use HTTPS. Never use
+  the development database password or example secret for a public service.
+- `npm test` runs the Node.js built-in test runner. Gateway forwarding tests
+  mock upstream fetch; session authorization tests mock Sequelize models.
+- The gateway and services share a database and session store; this is not a
+  database-per-service deployment.
+
+
+Quick troubleshooting
+---------------------
+"dockerDesktopLinuxEngine ... The system cannot find the file specified"
+    Docker Desktop or its Linux container engine is not ready. Open Docker
+    Desktop and wait for it to finish starting, then try docker info again.
+
+"connect ECONNREFUSED 127.0.0.1:5433"
+    PostgreSQL is not accepting connections on the configured host port.
+    Check docker compose ps, start the postgres service, and confirm that
+    DB_HOST and DB_PORT in .env match the Docker port mapping.
+
+"ADMIN_EMAIL does not match an existing account"
+    ADMIN_EMAIL is configured but that account has not been registered yet,
+    or the email does not match. Register the account first, then restart.
+
+Browser says it cannot reach the API
+    Confirm npm start is still running and the browser is using
+    http://localhost:5000.

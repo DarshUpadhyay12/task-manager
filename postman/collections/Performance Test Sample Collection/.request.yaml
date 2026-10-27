@@ -1,0 +1,10 @@
+$kind: http-request
+name: ""
+url: http://localhost:5000/api/users
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: ""
+order: 1000

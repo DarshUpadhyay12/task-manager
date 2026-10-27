@@ -1,0 +1,123 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-api_practice}
+      POSTGRES_USER: ${DB_USER:?Set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  auth-service:
+    build: .
+    restart: unless-stopped
+    command: ["npm", "run", "start:auth"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_NAME: ${DB_NAME:-api_practice}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      AUTH_SERVICE_PORT: 5001
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  task-service:
+    build: .
+    restart: unless-stopped
+    command: ["npm", "run", "start:tasks"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_NAME: ${DB_NAME:-api_practice}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      TASK_SERVICE_PORT: 5002
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    ports:
+      - "5002:5002"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  admin-service:
+    build: .
+    restart: unless-stopped
+    command: ["npm", "run", "start:admin"]
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_NAME: ${DB_NAME:-api_practice}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      ADMIN_SERVICE_PORT: 5003
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    ports:
+      - "5003:5003"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5003/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  gateway:
+    build: .
+    restart: unless-stopped
+    command: ["npm", "run", "start:gateway"]
+    environment:
+      GATEWAY_PORT: 5005
+      GATEWAY_REQUEST_TIMEOUT_MS: ${GATEWAY_REQUEST_TIMEOUT_MS:-10000}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      TASK_SERVICE_URL: http://task-service:5002
+      ADMIN_SERVICE_URL: http://admin-service:5003
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      task-service:
+        condition: service_healthy
+      admin-service:
+        condition: service_healthy
+    ports:
+      - "5005:5005"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5005/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:

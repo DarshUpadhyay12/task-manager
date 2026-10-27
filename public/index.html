@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f6f8">
+    <meta name="api-base" content="">
+    <title>Tasks — Task Manager</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+</head>
+<body>
+    <main class="page-shell">
+        <header class="page-header">
+            <h1>Task Manager</h1>
+            <div id="account-bar" class="account-bar" hidden>
+                <span id="account-name"></span>
+                <a id="admin-link" class="button button-quiet" href="/admin" hidden>Admin</a>
+                <button id="logout-button" class="button button-quiet" type="button">Log out</button>
+            </div>
+        </header>
+
+        <section id="auth-panel" class="auth-panel" aria-labelledby="auth-title" hidden>
+            <h2 id="auth-title">Log in</h2>
+            <p id="auth-description" class="auth-description">Log in to see and manage your tasks.</p>
+            <form id="auth-form" class="auth-form">
+                <label id="auth-name-field" hidden>
+                    Name
+                    <input id="auth-name" name="name" type="text" maxlength="100" autocomplete="name">
+                </label>
+                <label>
+                    Email
+                    <input id="auth-email" name="email" type="email" maxlength="254" autocomplete="email" required>
+                </label>
+                <label>
+                    Password
+                    <input id="auth-password" name="password" type="password" minlength="8" maxlength="72" autocomplete="current-password" required>
+                </label>
+                <p id="auth-feedback" class="feedback" role="alert" hidden></p>
+                <button id="auth-submit" class="button button-primary" type="submit">Log in</button>
+            </form>
+            <button id="auth-switch" class="auth-switch" type="button">Create an account</button>
+        </section>
+
+        <section id="task-panel" class="task-panel" aria-label="Task manager" hidden>
+            <form id="task-form" class="task-form">
+                <div class="form-heading">
+                    <div>
+                        <h2 id="form-title">Add a task</h2>
+                        <span id="form-kicker" class="sr-only">New task</span>
+                    </div>
+                </div>
+                <label class="sr-only" for="task-title">Task title</label>
+                <input id="task-title" name="title" type="text" maxlength="255" placeholder="Enter a task..." autocomplete="off" required>
+                <label class="sr-only" for="task-description">Task details (optional)</label>
+                <textarea id="task-description" name="description" rows="2" placeholder="Description (optional)"></textarea>
+                <fieldset class="due-date-fields">
+                    <legend>Schedule reminder <span>(optional)</span></legend>
+                    <label for="task-due-date">
+                        Date
+                        <input id="task-due-date" name="dueDate" type="date">
+                    </label>
+                    <label for="task-due-time">
+                        Time (local)
+                        <input id="task-due-time" name="dueTime" type="time">
+                    </label>
+                    <button id="enable-notifications" class="button button-quiet notification-button" type="button">
+                        Enable browser alerts
+                    </button>
+                </fieldset>
+                <div class="form-actions">
+                    <div class="form-buttons">
+                        <button id="cancel-edit" class="button button-quiet" type="button" hidden>Cancel</button>
+                        <button id="submit-task" class="button button-primary" type="submit">
+                            <span id="submit-label">Add task</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <section id="reminder-panel" class="reminder-panel" aria-label="Task reminders" role="status" aria-live="polite" hidden>
+                <h2>Due now</h2>
+                <ul id="reminder-list"></ul>
+            </section>
+
+            <div class="list-heading">
+                <h2>My tasks <span id="task-count" class="task-count">0</span></h2>
+                <div class="filters" role="group" aria-label="Filter tasks">
+                    <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">All</button>
+                    <button class="filter-button" type="button" data-filter="active" aria-pressed="false">To do</button>
+                    <button class="filter-button" type="button" data-filter="completed" aria-pressed="false">Done</button>
+                </div>
+            </div>
+
+            <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+            <ul id="task-list" class="task-list" aria-label="Tasks"></ul>
+            <div id="empty-state" class="empty-state" hidden>
+                <p id="empty-copy">No tasks yet.</p>
+            </div>
+        </section>
+        <div id="desktop-reminders" class="desktop-reminders" aria-live="assertive" aria-relevant="additions text"></div>
+    </main>
+</body>
+</html>

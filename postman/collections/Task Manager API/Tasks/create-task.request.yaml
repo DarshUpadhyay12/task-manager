@@ -1,0 +1,25 @@
+$kind: http-request
+method: POST
+url: '{{baseUrl}}/tasks'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "My First Task",
+      "description": "Task description",
+      "completed": false
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code === 201) {
+        const task = pm.response.json();
+        if (Number.isInteger(task.id) && task.id > 0) {
+          pm.environment.set("taskId", String(task.id));
+        }
+      }
+    language: text/javascript

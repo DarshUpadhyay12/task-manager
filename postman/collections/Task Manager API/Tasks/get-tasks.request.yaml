@@ -1,0 +1,16 @@
+$kind: http-request
+method: GET
+url: '{{baseUrl}}/tasks'
+order: 1000
+scripts:
+  - type: afterResponse
+    code: |-
+      if (pm.response.code === 200) {
+        const tasks = pm.response.json();
+        if (Array.isArray(tasks) && tasks.length > 0) {
+          pm.environment.set("taskId", String(tasks[0].id));
+        } else {
+          pm.environment.set("taskId", "");
+        }
+      }
+    language: text/javascript

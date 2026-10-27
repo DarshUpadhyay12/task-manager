@@ -1,0 +1,658 @@
+:root {
+    color-scheme: light;
+    font-family: Arial, sans-serif;
+    color: #090909;
+    background: hsl(0, 0%, 98%)
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    padding: 40px 16px;
+}
+
+button,
+input,
+textarea {
+    font: inherit;
+}
+
+.page-shell {
+    width: min(100%, 640px);
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.account-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #55595e;
+    font-size: 13px;
+}
+
+.auth-panel {
+    display: grid;
+    gap: 16px;
+    width: min(100%, 420px);
+    margin: 50px auto 0;
+    padding: 24px;
+    border: 1px solid #e0e2e5;
+    border-radius: 0;
+    background: #fff;
+}
+
+.auth-panel h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.auth-description {
+    margin: -10px 0 0;
+    color: #6b7075;
+    font-size: 14px;
+}
+
+.auth-form {
+    display: grid;
+    gap: 13px;
+}
+
+.auth-form label {
+    display: grid;
+    gap: 6px;
+    color: #8a99aa;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.auth-form input {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    border: 1px solid #d5d7da;
+    border-radius: 0;
+    font: inherit;
+    font-weight: 400;
+}
+
+.auth-form input:focus {
+    border-color: #0059f4;
+    outline: 2px solid rgb(71 118 197 / 15%);
+}
+
+.auth-form .button {
+    justify-self: start;
+}
+
+.auth-panel .feedback {
+    margin: 0;
+}
+
+.auth-switch {
+    justify-self: start;
+    padding: 0;
+    border: 0;
+    color: #2857a5;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.auth-switch:hover {
+    text-decoration: underline;
+}
+
+.admin-shell {
+    width: min(100%, 820px);
+}
+
+.admin-kicker {
+    margin: 0 0 5px;
+    color: #626a75;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.admin-summary {
+    margin: 0 0 12px;
+    color: #626a75;
+    font-size: 13px;
+}
+
+.admin-users {
+    display: grid;
+    gap: 14px;
+}
+
+.user-card {
+    padding: 18px 20px;
+    border: 1px solid #e0e2e5;
+    border-radius: 0;
+    background: #fff;
+}
+
+.user-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eceef0;
+}
+
+.user-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.user-email {
+    margin: 4px 0 0;
+    color: #6b7075;
+    font-size: 13px;
+}
+
+.user-id {
+    flex: 0 0 auto;
+    color: #6b7075;
+    font-size: 12px;
+}
+
+.admin-badge {
+    color: #2857a5;
+}
+
+.user-task-heading {
+    margin: 14px 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-task-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-task-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #eceef0;
+}
+
+.admin-task-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.admin-task-details {
+    min-width: 0;
+}
+
+.admin-task-title {
+    overflow-wrap: anywhere;
+    margin: 0;
+    font-size: 13px;
+}
+
+.admin-task-description {
+    overflow-wrap: anywhere;
+    margin: 4px 0 0;
+    color: #6b7075;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+
+.admin-task-id,
+.admin-task-status {
+    color: #6b7075;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.admin-task-status.is-completed {
+    color: #25633b;
+}
+
+.admin-empty {
+    margin: 12px 0 0;
+    color: #777c82;
+    font-size: 13px;
+}
+
+.task-panel {
+    overflow: hidden;
+    border: 1px solid #e0e2e5;
+    border-radius: 0;
+    background: #fff;
+}
+
+.task-form {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid #e7e8ea;
+}
+
+.form-heading h2,
+.list-heading h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.task-form input,
+.task-form textarea {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #d5d7da;
+    border-radius: 0;
+    outline: none;
+    background: #fff;
+    font-size: 14px;
+}
+
+.task-form textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+
+.due-date-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.due-date-fields legend {
+    grid-column: 1 / -1;
+    margin-bottom: 6px;
+    color: #55595e;
+    font-size: 13px;
+}
+
+.due-date-fields legend span {
+    color: #777c82;
+    font-weight: 400;
+}
+
+.due-date-fields label {
+    display: grid;
+    min-width: 0;
+    gap: 6px;
+    color: #55595e;
+    font-size: 12px;
+}
+
+.notification-button {
+    justify-self: start;
+}
+
+.due-date-fields input {
+    color: #202124;
+}
+
+.task-form input:focus,
+.task-form textarea:focus {
+    border-color: #4776c5;
+    box-shadow: 0 0 0 2px rgb(71 118 197 / 15%);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.button {
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid #d5d7da;
+    border-radius: 0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.button-primary {
+    border-color: #356ac3;
+    color: #fff;
+    background: #356ac3;
+}
+
+.button-primary:hover {
+    background: #2857a5;
+}
+
+.button-quiet:hover,
+.icon-button:hover {
+    background: #f1f2f4;
+}
+
+.button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.list-heading {
+    display: flex;
+    min-height: 62px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+}
+
+.task-count {
+    color: #70757a;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.filters {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-button {
+    padding: 6px 9px;
+    border: 0;
+    border-radius: 0;
+    color: #55595e;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.filter-button:hover {
+    background: #f1f2f4;
+}
+
+.filter-button.is-active {
+    color: #244f91;
+    background: #edf2fa;
+    font-weight: 600;
+}
+
+.feedback {
+    margin: 0 20px 12px;
+    padding: 10px 12px;
+    border-radius: 0;
+    color: #9a2828;
+    background: #fff0f0;
+    font-size: 13px;
+}
+
+.feedback.is-success {
+    color: #25633b;
+    background: #edf7ef;
+}
+
+.reminder-panel {
+    margin: 0 20px 12px;
+    padding: 12px 14px;
+    border: 1px solid #f2d28e;
+    border-radius: 0;
+    color: #694b08;
+    background: #fff8e8;
+    font-size: 13px;
+}
+
+.reminder-panel h2 {
+    margin: 0 0 6px;
+    font-size: 14px;
+}
+
+.reminder-panel ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.reminder-panel li + li {
+    margin-top: 3px;
+}
+
+.desktop-reminders {
+    position: fixed;
+    z-index: 10;
+    right: 24px;
+    bottom: 24px;
+    display: grid;
+    width: min(380px, calc(100vw - 32px));
+    gap: 12px;
+}
+
+.desktop-reminder {
+    padding: 18px;
+    border: 1px solid #d9e1ef;
+    border-left: 5px solid #356ac3;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: 0 12px 36px rgb(20 35 60 / 24%);
+    color: #202124;
+    animation: reminder-arrive 220ms ease-out;
+}
+
+.desktop-reminder-kicker {
+    margin: 0 0 5px;
+    color: #356ac3;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.desktop-reminder h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+}
+
+.desktop-reminder-message {
+    overflow-wrap: anywhere;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.desktop-reminder-time {
+    margin: 5px 0 0;
+    color: #686d75;
+    font-size: 12px;
+}
+
+.desktop-reminder-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.desktop-reminder-actions .button {
+    min-height: 38px;
+}
+
+@keyframes reminder-arrive {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.task-list {
+    margin: 0;
+    padding: 0 20px;
+    list-style: none;
+}
+
+.task-item {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+    padding: 14px 0;
+    border-top: 1px solid #eceef0;
+}
+
+.task-checkbox {
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    cursor: pointer;
+    accent-color: #356ac3;
+}
+
+.task-content {
+    min-width: 0;
+}
+
+.task-title {
+    overflow-wrap: anywhere;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.task-description {
+    overflow-wrap: anywhere;
+    margin: 4px 0 0;
+    color: #6b7075;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.task-due-date {
+    margin: 5px 0 0;
+    color: #694b08;
+    font-size: 12px;
+}
+
+.task-item.is-completed .task-title,
+.task-item.is-completed .task-description {
+    color: #898e93;
+    text-decoration: line-through;
+}
+
+.task-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.icon-button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.delete-button:hover {
+    color: #b42318;
+    background: #fff0f0;
+}
+
+.empty-state {
+    padding: 24px 20px;
+    border-top: 1px solid #eceef0;
+    color: #70757a;
+    font-size: 14px;
+    text-align: center;
+}
+
+.empty-state p {
+    margin: 0;
+}
+
+.sr-only {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 24px 12px;
+    }
+
+    .task-form,
+    .list-heading {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .task-list {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .feedback {
+        margin-right: 14px;
+        margin-left: 14px;
+    }
+
+    .reminder-panel {
+        margin-right: 14px;
+        margin-left: 14px;
+    }
+
+    .desktop-reminders {
+        right: 12px;
+        bottom: 12px;
+        width: calc(100vw - 24px);
+    }
+
+    .account-bar {
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .account-bar .button {
+        min-height: 32px;
+        padding: 0 9px;
+    }
+}
